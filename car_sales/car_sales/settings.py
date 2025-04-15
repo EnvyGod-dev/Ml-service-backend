@@ -67,17 +67,19 @@ DATABASES = {
 
 STATIC_URL = '/static/'
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1']
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', '103.50.205.42']
 
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",  # Frontend React эсвэл Vue
     "http://127.0.0.1:8000",  # Django API сервер
+    "http://103.50.205.42:3000"
 ]
 
 
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:8000",
+    "http://103.50.205.42:3000"
 ]
 
 STATICFILES_DIRS = [
