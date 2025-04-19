@@ -16,7 +16,10 @@ def preprocess_data(data):
     df = pd.DataFrame([data])
     categorical_columns = ['maker', 'car_name', 'fuel_type']
     for col in categorical_columns:
-        df[col] = label_encoders[col].transform([df[col][0]])[0]
+        le = label_encoders[col]
+        if data[col] not in le.classes_:
+            raise ValueError(f"{col} contains unknown label: {data[col]}")
+        df[col] = le.transform([data[col]])[0]
     return df
 
 def predict_price(data):

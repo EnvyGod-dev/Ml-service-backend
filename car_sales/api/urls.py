@@ -1,15 +1,9 @@
 from django.urls import path
-from .views import get_cars, predict_car_price
-from django.contrib import admin
-from django.urls import path, include
+from .views import get_cars, predict_car_price, get_model_info
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
-    path('api/', include('api.urls')),  # API-г энд холбож өгнө
+    path('cars/', get_cars),
+    path('predict/', predict_car_price),
+    path('model-info/', get_model_info),
 ]
 
-
-urlpatterns = [
-    path('cars/', get_cars),  # Машины жагсаалт авах
-    path('predict/', predict_car_price),  # Үнэ таамаглах
-]

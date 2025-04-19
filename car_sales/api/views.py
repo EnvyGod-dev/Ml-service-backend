@@ -1,7 +1,7 @@
 from django.http import JsonResponse
 from rest_framework.decorators import api_view
-from .ml_model import predict_price
 from rest_framework.response import Response
+from .ml_model import predict_price, label_encoders  # ✅ Add label_encoders import
 
 CARS = [
     {"car_name": "Toyota Corolla"},
@@ -13,8 +13,15 @@ CARS = [
 
 @api_view(["GET"])
 def get_cars(request):
-    """ Машины жагсаалт буцаах API """
-    return JsonResponse(CARS, safe=False)
+    return Response(CARS)
+
+@api_view(["GET"])
+def get_model_info(request):
+    return Response({
+        "allowed_makers": label_encoders["maker"].classes_.tolist(),
+        "allowed_car_names": label_encoders["car_name"].classes_.tolist(),
+        "allowed_fuel_types": label_encoders["fuel_type"].classes_.tolist()
+    })
 
 @api_view(["POST"])
 def predict_car_price(request):
@@ -24,8 +31,9 @@ def predict_car_price(request):
         missing = [field for field in required_fields if field not in data]
         if missing:
             return Response({"error": f"Missing fields: {', '.join(missing)}"}, status=400)
-        
+
         price = predict_price(data)
         return Response({"predicted_price": price})
     except Exception as e:
         return Response({"error": str(e)}, status=400)
+
