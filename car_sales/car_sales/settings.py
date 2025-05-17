@@ -1,31 +1,35 @@
 import os
 from pathlib import Path
+from datetime import timedelta
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = 'your-secret-key'
-
 DEBUG = True
-
 ALLOWED_HOSTS = ['*']
 APPEND_SLASH = False
 
 INSTALLED_APPS = [
+    # Django built-ins
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
+    'django.contrib.staticfiles',   # ← required for admin static assets
 
-    'rest_framework',  # Django REST Framework
-    'rest_framework.authtoken',  # ✅ Must be here
-    'corsheaders',  # CORS Headers
-    'api',  # API app
+    # Third-party
+    'rest_framework',
+    'corsheaders',
+    'rest_framework_simplejwt',
+    'rest_framework_simplejwt.token_blacklist',
+
+    # Your apps
+    'api',
 ]
 
-
 MIDDLEWARE = [
-    'corsheaders.middleware.CorsMiddleware',  # CORS Middleware-г хамгийн эхэнд нэмэх
+    'corsheaders.middleware.CorsMiddleware',      # must be first
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -35,16 +39,33 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
+ROOT_URLCONF = 'car_sales.urls'
+WSGI_APPLICATION = 'car_sales.wsgi.application'
 
+DATABASES = {
+    'default': {
+        'ENGINE':   'django.db.backends.postgresql',
+        'NAME':     'car',
+        'USER':     'UserService',
+        'PASSWORD': 'User@Service',
+        'HOST':     '103.50.205.86',
+        'PORT':     '5432',
+    }
+}
+
+# ------------------------------------------------------------------------------
+# Templates (needed for Admin UI)
+# ------------------------------------------------------------------------------
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / 'templates'],  # Хэрэв та өөрийн template хавтас нэмэх бол
-        'APP_DIRS': True,
+        # Add your own template directories here if needed:
+        'DIRS': [BASE_DIR / 'templates'],
+        'APP_DIRS': True,  # tells Django to look in each app’s “templates/” folder
         'OPTIONS': {
             'context_processors': [
                 'django.template.context_processors.debug',
-                'django.template.context_processors.request',
+                'django.template.context_processors.request',   # required by admin
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
             ],
@@ -52,53 +73,52 @@ TEMPLATES = [
     },
 ]
 
-
-CORS_ALLOW_ALL_ORIGINS = True  # Бүх домэйнийг зөвшөөрөх
-
-ROOT_URLCONF = 'car_sales.urls'
-
-WSGI_APPLICATION = 'car_sales.wsgi.application'
-
-DATABASES = {
-     'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'car',
-        'USER': 'UserService',
-        'PASSWORD': 'User@Service',
-        'HOST': '103.50.205.86',
-        'PORT': '5432',
-    }
-}
-
+# ------------------------------------------------------------------------------
+# Static files (CSS, JavaScript, images)
+# ------------------------------------------------------------------------------
 STATIC_URL = '/static/'
+STATICFILES_DIRS = [BASE_DIR / 'static']
+STATIC_ROOT = BASE_DIR / 'staticfiles'  # for collectstatic in production
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', '103.50.205.42']
-
+# ------------------------------------------------------------------------------
+# CORS / CSRF
+# ------------------------------------------------------------------------------
+CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",  # Frontend React эсвэл Vue
-    "http://127.0.0.1:8000",  # Django API сервер
-    "http://103.50.205.42:3000"
+    "http://localhost:3000",
+    "http://127.0.0.1:8000",
+    "http://103.50.205.42:3000",
 ]
-
-
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:8000",
-    "http://103.50.205.42:3000"
+    "http://103.50.205.42:3000",
 ]
 
-STATICFILES_DIRS = [
-    BASE_DIR / "static",
-]
-
+# ------------------------------------------------------------------------------
+# Django REST Framework & JWT
+# ------------------------------------------------------------------------------
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework.authentication.SessionAuthentication',
-        'rest_framework.authentication.BasicAuthentication',
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
-    'DEFAULT_PERMISSION_CLASSES': [
+    'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.AllowAny',
-    ]
+    ),
 }
 
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME':       timedelta(minutes=60),
+    'REFRESH_TOKEN_LIFETIME':      timedelta(days=7),
+    'ROTATE_REFRESH_TOKENS':       True,
+    'BLACKLIST_AFTER_ROTATION':    True,
+    'AUTH_HEADER_TYPES':           ('Bearer',),
+}
 
+# ------------------------------------------------------------------------------
+# Internationalization, etc.
+# ------------------------------------------------------------------------------
+LANGUAGE_CODE = 'en-us'
+TIME_ZONE = 'UTC'
+USE_I18N = True
+USE_TZ = True
