@@ -1,22 +1,39 @@
+# car_sales/settings.py
+
 import os
 from pathlib import Path
 from datetime import timedelta
 
+# ──────────────────────────────────────────────────────────────────────────────
+# BASE_DIR
+# ──────────────────────────────────────────────────────────────────────────────
+# BASE_DIR points to the root Ml-service-backend folder
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = 'your-secret-key'
-DEBUG = True
-ALLOWED_HOSTS = ['*']
+# ──────────────────────────────────────────────────────────────────────────────
+# SECURITY
+# ──────────────────────────────────────────────────────────────────────────────
+SECRET_KEY = 'your-secret-key'      # ← replace with your real secret
+DEBUG = False                       # ← turn off in production!
+ALLOWED_HOSTS = [
+    '127.0.0.1',
+    'localhost',
+    '103.50.205.86',                # ← your server IP
+]
+
 APPEND_SLASH = False
 
+# ──────────────────────────────────────────────────────────────────────────────
+# APPLICATIONS
+# ──────────────────────────────────────────────────────────────────────────────
 INSTALLED_APPS = [
-    # Django built-ins
+    # Django core
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
-    'django.contrib.staticfiles',   # ← required for admin static assets
+    'django.contrib.staticfiles',   # <-- needed for admin + static
 
     # Third-party
     'rest_framework',
@@ -42,6 +59,9 @@ MIDDLEWARE = [
 ROOT_URLCONF = 'car_sales.urls'
 WSGI_APPLICATION = 'car_sales.wsgi.application'
 
+# ──────────────────────────────────────────────────────────────────────────────
+# DATABASE
+# ──────────────────────────────────────────────────────────────────────────────
 DATABASES = {
     'default': {
         'ENGINE':   'django.db.backends.postgresql',
@@ -53,15 +73,14 @@ DATABASES = {
     }
 }
 
-# ------------------------------------------------------------------------------
-# Templates (needed for Admin UI)
-# ------------------------------------------------------------------------------
+# ──────────────────────────────────────────────────────────────────────────────
+# TEMPLATES (needed for admin)
+# ──────────────────────────────────────────────────────────────────────────────
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        # Add your own template directories here if needed:
-        'DIRS': [BASE_DIR / 'templates'],
-        'APP_DIRS': True,  # tells Django to look in each app’s “templates/” folder
+        'DIRS':    [BASE_DIR / 'templates'],  # optional, if you have custom templates
+        'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
                 'django.template.context_processors.debug',
@@ -73,31 +92,35 @@ TEMPLATES = [
     },
 ]
 
-# ------------------------------------------------------------------------------
-# Static files (CSS, JavaScript, images)
-# ------------------------------------------------------------------------------
+# ──────────────────────────────────────────────────────────────────────────────
+# STATIC FILES
+# ──────────────────────────────────────────────────────────────────────────────
 STATIC_URL = '/static/'
+# Where `collectstatic` will gather all files
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+# If you have a `static/` folder for your own assets, create it:
+#   mkdir -p /home/cloudmn/Ml-service-backend/static
+# You can remove this line if you don't use a static folder.
 STATICFILES_DIRS = [BASE_DIR / 'static']
-STATIC_ROOT = BASE_DIR / 'staticfiles'  # for collectstatic in production
 
-# ------------------------------------------------------------------------------
+# ──────────────────────────────────────────────────────────────────────────────
 # CORS / CSRF
-# ------------------------------------------------------------------------------
+# ──────────────────────────────────────────────────────────────────────────────
 CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:8000",
-    "http://103.50.205.42:3000",
+    "http://103.50.205.86:3000",    # if you host a frontend on this IP:port
 ]
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:8000",
-    "http://103.50.205.42:3000",
+    "http://103.50.205.86:3000",
 ]
 
-# ------------------------------------------------------------------------------
-# Django REST Framework & JWT
-# ------------------------------------------------------------------------------
+# ──────────────────────────────────────────────────────────────────────────────
+# REST FRAMEWORK & JWT
+# ──────────────────────────────────────────────────────────────────────────────
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
@@ -115,10 +138,11 @@ SIMPLE_JWT = {
     'AUTH_HEADER_TYPES':           ('Bearer',),
 }
 
-# ------------------------------------------------------------------------------
-# Internationalization, etc.
-# ------------------------------------------------------------------------------
+# ──────────────────────────────────────────────────────────────────────────────
+# INTERNATIONALIZATION
+# ──────────────────────────────────────────────────────────────────────────────
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'UTC'
 USE_I18N = True
 USE_TZ = True
+
