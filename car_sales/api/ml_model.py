@@ -1,23 +1,18 @@
-# api/ml_model.py
-
 import os
 import pickle
 import re
+import numpy as np
 import pandas as pd
 from django.conf import settings
 
-# Project root where manage.py resides (and where artifacts are saved)
+# Project root where artifacts live
 ARTIFACTS_DIR = settings.BASE_DIR
-
-# Paths to the trained model and encoders
 MODEL_PATH   = os.path.join(ARTIFACTS_DIR, 'ml_model.pkl')
 ENCODER_PATH = os.path.join(ARTIFACTS_DIR, 'label_encoders.pkl')
 
-# Load the trained model
+# Load trained model and encoders
 with open(MODEL_PATH, 'rb') as f:
     model = pickle.load(f)
-
-# Load the label encoders
 with open(ENCODER_PATH, 'rb') as f:
     label_encoders = pickle.load(f)
 
@@ -26,22 +21,18 @@ print(f"[DEBUG] Loaded encoder keys: {list(label_encoders.keys())}")
 
 def preprocess_data(data):
     """
-    data: dict with keys registration_year, maker, car_name, fuel_type,
-          engine_size, odometer, condition, chassis_id, colour
-    returns: pandas DataFrame of features
+    Normalize and encode a single car data dict.
+    Allows unseen categorical labels by dynamically appending them to the encoder.
     """
     df = pd.DataFrame([data])
 
-    # Normalize text fields
-    df['car_name']   = df['car_name'].astype(str).apply(
-        lambda x: re.sub(r'\s+', ' ', x.strip().upper())
-    )
-    df['maker']      = df['maker'].astype(str).str.strip().str.upper()
-    df['fuel_type']  = df['fuel_type'].astype(str).str.strip().str.upper()
-    df['chassis_id'] = df['chassis_id'].astype(str).str.strip().str.upper()
-    df['colour']     = df['colour'].astype(str).str.strip().str.upper()
+    # 1) Normalize text fields (strip NBSP, uppercase, collapse whitespace)
+    for col in ['car_name', 'maker', 'fuel_type', 'chassis_id', 'colour']:
+        df[col] = df[col].astype(str).apply(
+            lambda x: re.sub(r"\s+", " ", x.replace('\xa0', ' ').strip().upper())
+        )
 
-    # Numeric conversions and validations
+    # 2) Numeric fields conversion & validation
     for field in ['registration_year', 'engine_size', 'odometer', 'condition']:
         if field not in df.columns:
             raise ValueError(f"Missing required field: {field}")
@@ -49,26 +40,25 @@ def preprocess_data(data):
         if df[field].isnull().any():
             raise ValueError(f"Invalid numeric value in field: {field}")
 
-    # Encode categorical fields
+    # 3) Encode categorical, append unseen labels
     for col in ['maker', 'car_name', 'fuel_type', 'chassis_id', 'colour']:
-        if col not in label_encoders:
-            raise KeyError(f"No encoder found for column: {col}")
         encoder = label_encoders[col]
-        value = df.at[0, col]
-        if value not in encoder.classes_:
-            raise ValueError(f"Unknown label '{value}' in column '{col}'")
+        val = df.at[0, col]
+        if val not in encoder.classes_:
+            # dynamically extend encoder to include new label
+            encoder.classes_ = np.append(encoder.classes_, val)
         df[col] = encoder.transform(df[col])
 
-    # Return features in the order the model expects
-    feature_order = [
+    # 4) Return features in model's expected order
+    feature_cols = [
         'registration_year', 'maker', 'car_name', 'fuel_type',
         'engine_size', 'odometer', 'condition', 'chassis_id', 'colour'
     ]
-    return df[feature_order]
+    return df[feature_cols]
 
 
 def predict_price(data):
-    """Return the predicted price for a single car data dict"""
+    """Predict price for a single car data dict."""
     X = preprocess_data(data)
     y_pred = model.predict(X)
     return round(float(y_pred[0]), 2)
