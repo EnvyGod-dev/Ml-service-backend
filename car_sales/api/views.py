@@ -21,39 +21,64 @@ def _get_classes(key):
 @api_view(['GET'])
 def get_model_info(request):
     """
-    Returns all allowed dropdown values: makers, car_names, fuel_types,
-    chassis_ids, colours, and years (from Data.csv).
+    Returns allowed dropdown values:
+      - allowed_makers: all makers
+      - allowed_car_names, allowed_chassis_ids, allowed_colours, allowed_years
+        filtered by ?maker=<MAKER> if provided.
     """
+    # 1) locate Data.csv
     csv_path = os.path.join(settings.BASE_DIR, 'Data.csv')
     if not os.path.exists(csv_path):
         csv_path = os.path.join(settings.BASE_DIR, '..', 'Data.csv')
 
-    allowed_years = []
-    if os.path.exists(csv_path):
-        try:
-            df = pd.read_csv(csv_path)
-            df.columns = [c.strip().lower().replace('\xa0', ' ') for c in df.columns]
-            if 'year' in df.columns:
-                allowed_years = (
-                    pd.to_numeric(df['year'], errors='coerce')
-                      .dropna()
-                      .astype(int)
-                      .sort_values()
-                      .unique()
-                      .tolist()
-                )
-        except Exception as e:
-            print(f"[DEBUG] Failed to load years: {e}")
+    # 2) read & normalize
+    df = pd.read_csv(csv_path)
+    # normalize column names
+    df.columns = [c.strip().lower().replace('\xa0', ' ') for c in df.columns]
+
+    # 3) rebuild exactly the same features as in train_model.py
+    #    so that filtering matches the encoded values
+    import re
+    # chassis_id
+    df['chassis_id'] = df['chassis id'].astype(str).str.strip()
+    # colour
+    df['colour'] = df['colour'].astype(str).str.strip().str.upper()
+    # condition (we'll ignore here)
+    # maker mapping from chassis_id
+    maker_map = { 'MXUA80': 'TOYOTA' }
+    df['maker'] = df['chassis_id'].map(maker_map).fillna('LEXUS')
+    # car_name normalization
+    df['car_name'] = (
+        df['box of modif.']
+          .astype(str)
+          .apply(lambda x: re.sub(r'\s+', ' ', x.strip().upper()))
+    )
+    # year
+    df['year'] = pd.to_numeric(df['year'], errors='coerce')
+
+    # 4) apply maker filter if requested
+    maker_filter = request.query_params.get('maker')
+    if maker_filter:
+        # uppercase to match normalization
+        maker_filter = maker_filter.strip().upper()
+        df = df[df['maker'] == maker_filter]
+
+    # 5) build each dropdown list
+    allowed_makers    = label_encoders['maker'].classes_.tolist()
+    allowed_car_names = sorted(df['car_name'].dropna().unique().tolist())
+    allowed_fuel_types= label_encoders['fuel_type'].classes_.tolist()
+    allowed_chassis_ids= sorted(df['chassis_id'].dropna().unique().tolist())
+    allowed_colours   = sorted(df['colour'].dropna().unique().tolist())
+    allowed_years     = sorted(df['year'].dropna().astype(int).unique().tolist())
 
     return Response({
-        'allowed_makers':      _get_classes('maker'),
-        'allowed_car_names':   _get_classes('car_name'),
-        'allowed_fuel_types':  _get_classes('fuel_type'),
-        'allowed_chassis_ids': _get_classes('chassis_id'),
-        'allowed_colours':     _get_classes('colour'),
-        'allowed_years':       allowed_years,
+        'allowed_makers':       allowed_makers,
+        'allowed_car_names':    allowed_car_names,
+        'allowed_fuel_types':   allowed_fuel_types,
+        'allowed_chassis_ids':  allowed_chassis_ids,
+        'allowed_colours':      allowed_colours,
+        'allowed_years':        allowed_years,
     })
-
 
 @api_view(['POST'])
 def register_user(request):
