@@ -1,3 +1,5 @@
+# car_sales/api/views.py
+
 import os
 import pandas as pd
 from django.conf import settings
@@ -19,10 +21,9 @@ def _get_classes(key):
 @api_view(['GET'])
 def get_model_info(request):
     """
-    Returns allowed dropdown values: makers, car_names, fuel_types,
+    Returns all allowed dropdown values: makers, car_names, fuel_types,
     chassis_ids, colours, and years (from Data.csv).
     """
-    # locate your Data.csv
     csv_path = os.path.join(settings.BASE_DIR, 'Data.csv')
     if not os.path.exists(csv_path):
         csv_path = os.path.join(settings.BASE_DIR, '..', 'Data.csv')
@@ -53,6 +54,7 @@ def get_model_info(request):
         'allowed_years':       allowed_years,
     })
 
+
 @api_view(['POST'])
 def register_user(request):
     """
@@ -75,6 +77,7 @@ def register_user(request):
         'access':  str(refresh.access_token)
     }, status=status.HTTP_201_CREATED)
 
+
 @api_view(['POST'])
 def login_user(request):
     """
@@ -92,6 +95,7 @@ def login_user(request):
         'refresh': str(refresh),
         'access':  str(refresh.access_token)
     })
+
 
 @api_view(['POST'])
 def predict_car_price(request):
@@ -113,6 +117,7 @@ def predict_car_price(request):
     except Exception as e:
         return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
+
 @api_view(['POST'])
 def predict_batch(request):
     """
@@ -133,6 +138,7 @@ def predict_batch(request):
             errors.append(str(e))
 
     return Response({'predicted_prices': results, 'errors': errors})
+
 
 @api_view(['GET'])
 def predict_time_series(request):
